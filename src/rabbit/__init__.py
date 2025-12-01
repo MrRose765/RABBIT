@@ -1,4 +1,4 @@
 import importlib.metadata
 
 
-__version__ = importlib.metadata.version('rabbit')
+__version__ = importlib.metadata.version("rabbit")

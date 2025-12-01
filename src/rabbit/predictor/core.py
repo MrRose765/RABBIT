@@ -5,7 +5,8 @@ from ghmap.mapping.action_mapper import ActionMapper
 from ghmap.utils import load_json_file
 
 from .features import compute_user_features
-from .models import load_model, predict_contributor
+from .models import predict_contributor
+
 
 def _compute_activity_sequences(events: list) -> list:
     """
@@ -29,7 +30,6 @@ def _compute_activity_sequences(events: list) -> list:
     return activities
 
 
-
 def predict_user_type(username: str, events: list) -> tuple:
     """
     Predict the user type (bot or human) based on the given events
@@ -39,12 +39,8 @@ def predict_user_type(username: str, events: list) -> tuple:
     activities = _compute_activity_sequences(events)
     if len(activities) == 0:
         # Events where found but no activities could be computed
-        return 'Unknown', '-'
+        return "Unknown", "-"
 
     features_df = compute_user_features(username, activities)
 
-    return predict_contributor(features_df, load_model())
-
-
-
-
+    return predict_contributor(features_df)

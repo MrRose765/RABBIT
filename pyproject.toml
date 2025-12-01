@@ -35,3 +35,9 @@ extend-exclude = ["tests/"]
 # allow unused imports in __init__.py files
 per-file-ignores = { "__init__.py" = ["F401"] }
 
+[tool.coverage.run]
+branch = true
+source = ["rabbit"]
+omit = [
+    "*/__init__.py",
+]
