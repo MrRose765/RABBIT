@@ -17,7 +17,9 @@ def test_predict_contributor():
     import pandas as pd
 
     # Sample features for testing
-    bot_features_path = os.path.join(os.path.dirname(__file__), "..", "data", "bot_features.csv")
+    bot_features_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "bot_features.csv"
+    )
     sample_bot_features = pd.read_csv(bot_features_path)
 
     prediction, confidence = predict_contributor(sample_bot_features)
