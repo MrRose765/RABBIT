@@ -1,23 +1,26 @@
-import os
+from pathlib import Path
+
+from rabbit.predictor import predict_user_type
 
 
-def _load_events(file_path):
-    import json
+class TestPredictor:
+    def test_no_activities_returns_unknown(self):
+        events = []
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        events = json.load(f)
-    return events
+        username = "test"
+        user_type, confidence = predict_user_type(username, events)
+        assert user_type == "Unknown"
+        assert confidence == "-"
 
+    def test_predict_human(self):
+        import json
 
-def test_predict_human():
-    from rabbit.predictor import predict_user_type
+        human_events_file = Path(__file__).parent.parent / "data" / "events_human.json"
 
-    events_file = os.path.join(
-        os.path.dirname(__file__), "..", "data", "events_human.json"
-    )
-    user_events = _load_events(events_file)
+        with open(human_events_file, "r", encoding="utf-8") as f:
+            human_events = json.load(f)
 
-    username = "test"
-    user_type, confidence = predict_user_type(username, user_events)
-    assert user_type == "Human"
-    assert 0.0 <= confidence <= 1.0
+        username = "test"
+        user_type, confidence = predict_user_type(username, human_events)
+        assert user_type == "Human"
+        assert 0.0 <= confidence <= 1.0
