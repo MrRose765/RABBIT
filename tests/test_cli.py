@@ -11,11 +11,10 @@ runner = CliRunner()
 
 
 class TestCLI:
-
     @pytest.fixture
     def mock_run_rabbit(self):
         """Mock run_rabbit to verify parameters are passed correctly."""
-        with patch('rabbit.cli.run_rabbit') as mock:
+        with patch("rabbit.cli.run_rabbit") as mock:
             yield mock
 
     def test_app_help(self):
@@ -29,14 +28,12 @@ class TestCLI:
         result = runner.invoke(app, [])
         assert result.exit_code != 0
 
-
     def test_text_output(self, mock_run_rabbit):
         result = runner.invoke(app, ["octocat"])
 
         assert result.exit_code == 0
         assert mock_run_rabbit.call_args.kwargs["output_type"] == "text"
         assert mock_run_rabbit.call_args.kwargs["output_path"] == ""
-
 
     def test_csv_output(self, mock_run_rabbit, tmp_path):
         csv_file = tmp_path / "test_output.csv"
@@ -53,7 +50,6 @@ class TestCLI:
         assert result.exit_code == 0
         assert mock_run_rabbit.call_args.kwargs["output_type"] == "json"
         assert mock_run_rabbit.call_args.kwargs["output_path"] == str(json_file)
-
 
     def test_cli_extend_contributors_list_with_file(self, mock_run_rabbit, tmp_path):
         """Test if the list of the contributors is extended with the content of the input file."""
@@ -78,7 +74,9 @@ class TestCLI:
         expected_contributors = ["contributor3", "contributor1", "contributor2"]
         kwargs = mock_run_rabbit.call_args.kwargs
         assert sorted(kwargs["contributors"]) == sorted(expected_contributors)
-        assert kwargs["api_key"] == "valid_github_api_key_which_is_long_enough_1234567890"
+        assert (
+            kwargs["api_key"] == "valid_github_api_key_which_is_long_enough_1234567890"
+        )
 
 
 class TestIntegration:
@@ -92,7 +90,6 @@ class TestIntegration:
         data_file = Path(__file__).parent / "data" / "events_human.json"
         with open(data_file, "r", encoding="utf-8") as f:
             return json.load(f)
-
 
     @responses.activate
     def test_real_execution(self, tmp_path, github_events):
@@ -126,4 +123,6 @@ class TestIntegration:
         with open(output_file, "r", encoding="utf-8") as f:
             output_data = f.read()
         assert "testuser" in output_data  # Basic check to see if username is in
-        assert "Human" in output_data or "Bot" in output_data  # Check for classification
+        assert (
+            "Human" in output_data or "Bot" in output_data
+        )  # Check for classification

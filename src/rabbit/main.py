@@ -6,6 +6,7 @@ from .sources.errors import GitHubAPIError
 
 from rich.progress import track
 
+
 def _save_results(all_results, output_type, save_path):
     """
     args: all_results (DataFrame)- all the results (contributor name, type, confidence and so on) and additional information (features used to determine the type)
@@ -17,25 +18,25 @@ def _save_results(all_results, output_type, save_path):
     description: Save the results in the given path
     """
 
-    if output_type == 'text':
+    if output_type == "text":
         print(all_results.to_string(index=False))
 
-    elif output_type == 'csv':
+    elif output_type == "csv":
         all_results.to_csv(save_path, index=False)
-    elif output_type == 'json':
-        all_results.to_json(save_path, orient='records', indent=4)
+    elif output_type == "json":
+        all_results.to_json(save_path, orient="records", indent=4)
 
 
 def run_rabbit(
-        contributors: list[str],
-        api_key: str = None,
-        min_events: int = 5,
-        min_confidence: float = 1.0,
-        max_queries: int = 3,
-        output_type: str = 'text',
-        output_path: str = '',
-        _verbose: bool = False,
-        incremental: bool = False,
+    contributors: list[str],
+    api_key: str = None,
+    min_events: int = 5,
+    min_confidence: float = 1.0,
+    max_queries: int = 3,
+    output_type: str = "text",
+    output_path: str = "",
+    _verbose: bool = False,
+    incremental: bool = False,
 ):
     """
     Orchestrates the RABBIT bot identification process for GitHub contributors.
@@ -71,10 +72,18 @@ def run_rabbit(
         try:
             events = gh_api_client.query_events(contributor)
             if len(events) < min_events:
-                result = {"contributor": contributor, "type": "Unknown", "confidence": "-"}
+                result = {
+                    "contributor": contributor,
+                    "type": "Unknown",
+                    "confidence": "-",
+                }
             else:
                 user_type, confidence = predict_user_type(contributor, events)
-                result = { "contributor": contributor, "type": user_type, "confidence": confidence }
+                result = {
+                    "contributor": contributor,
+                    "type": user_type,
+                    "confidence": confidence,
+                }
 
         except GitHubAPIError as github_err:
             print(github_err)
@@ -82,12 +91,17 @@ def run_rabbit(
             print(f"An unexpected error occurred for contributor {contributor}: {e}")
         finally:
             if result is None:
-                result = {"contributor": contributor, "type": "Invalid", "confidence": "-"}
-            all_results = pd.concat([all_results, pd.DataFrame([result])], ignore_index=True)
+                result = {
+                    "contributor": contributor,
+                    "type": "Invalid",
+                    "confidence": "-",
+                }
+            all_results = pd.concat(
+                [all_results, pd.DataFrame([result])], ignore_index=True
+            )
 
             if incremental:
                 _save_results(all_results, output_type, output_path)
 
     if not incremental:
         _save_results(all_results, output_type, output_path)
-
