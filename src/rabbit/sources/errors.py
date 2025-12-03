@@ -29,7 +29,8 @@ class RateLimitExceededError(GitHubAPIError):
         time_diff = (reset_time - datetime.now()).total_seconds()
         if time_diff > 0:
             print(
-                f"Waiting for {time_diff} seconds until rate limit reset. Reset at {reset_time}."
+                f"Waiting for {time_diff} seconds until rate limit reset. "
+                f"Reset at {reset_time}."
             )
             time.sleep(time_diff)
 

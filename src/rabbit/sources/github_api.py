@@ -61,6 +61,7 @@ class GitHubAPIExtractor:
             query,
             headers={"Authorization": f"token {self.api_key}"} if self.api_key else {},
             params={"per_page": 100, "page": page},
+            timeout=30,
         )
         return self._handle_api_response(contributor, response)
 

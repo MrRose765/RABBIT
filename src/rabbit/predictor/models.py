@@ -13,8 +13,10 @@ def predict_contributor(features, model_path=None):
         model_path: The model to use to predict the type of contributor.
 
     Returns:
-        contributor_type (str) - type of contributor determined based on probability ('Bot' or 'Human')
-        confidence (float) - confidence score of the determined type (value between 0.0 and 1.0)
+        contributor_type (str) - type of contributor determined based on
+            probability ('Bot' or 'Human')
+        confidence (float) - confidence score of the determined type
+            (value between 0.0 and 1.0)
     """
 
     model = __load_model(model_path)
@@ -31,7 +33,9 @@ def predict_contributor(features, model_path=None):
 
 def __load_model(model_path=None):
     """
-    Load a .joblib model from a given path. If no path is provided, the default model from RABBIT is loaded.
+    Load a .joblib model from a given path.
+
+    If no path is provided, the default model from RABBIT is loaded.
 
     Parameters:
         model_path (str) - path to the model to load (default: None)
@@ -46,4 +50,4 @@ def __load_model(model_path=None):
         bimbas_model = joblib.load(model_path)
         return bimbas_model
     except Exception as e:
-        raise RuntimeError(f"Failed to load model from {model_path}: {e}")
+        raise RuntimeError(f"Failed to load model from {model_path}: {e}") from e
