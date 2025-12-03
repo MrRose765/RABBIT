@@ -12,7 +12,7 @@ def test_predict_contributor():
     """
     Test the predict_contributor function with a sample bot feature set.
     """
-    from rabbit.predictor.models import __load_model, predict_contributor
+    from rabbit.predictor.models import predict_contributor
     import os
     import pandas as pd
 

@@ -10,7 +10,7 @@ def predict_contributor(features, model_path=None):
 
     Parameters:
         features: A DataFrame with the features of the contributor.
-        model: The model to use to predict the type of contributor.
+        model_path: The model to use to predict the type of contributor.
 
     Returns:
         contributor_type (str) - type of contributor determined based on probability ('Bot' or 'Human')
