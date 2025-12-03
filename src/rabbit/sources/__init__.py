@@ -1,3 +1,3 @@
 from .github_api import GitHubAPIExtractor
 
-__all__ = ["errors", "GitHubAPIExtractor"]
+__all__ = ["GitHubAPIExtractor", "errors"]
