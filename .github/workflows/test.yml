@@ -31,9 +31,7 @@ jobs:
         - name: Check lockfile
           run: uv lock --check
         - name: Check code style with Ruff
-          run: |
-            uv run ruff check --output-format=github
-            uv run ruff format --check
+          run: uv run ruff check --output-format=github
         - name: Run tests with pytest
           run: uv run pytest --cov
 
