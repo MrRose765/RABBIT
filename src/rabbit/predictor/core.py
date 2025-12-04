@@ -1,3 +1,5 @@
+import contextlib
+import io
 from importlib.resources import files
 
 from ghmap.mapping.activity_mapper import ActivityMapper
@@ -17,15 +19,21 @@ def _compute_activity_sequences(events: list) -> list:
     Returns:
         list: List of activity sequences computed using ghmap
     """
-    action_mapping_file = files("ghmap").joinpath("config", "event_to_action.json")
-    action_mapping_json = load_json_file(action_mapping_file)
-    action_mapper = ActionMapper(action_mapping_json, progress_bar=False)
-    actions = action_mapper.map(events)
+    with contextlib.redirect_stdout(io.StringIO()):
+        # Disable ghmap warnings in the stdout TODO: better way to handle ghmap logging?
+        action_mapping_file = files("ghmap").joinpath(
+            "config", "event_to_action.json"
+        )
+        action_mapping_json = load_json_file(action_mapping_file)
+        action_mapper = ActionMapper(action_mapping_json, progress_bar=False)
+        actions = action_mapper.map(events)
 
-    activity_mapping_file = files("ghmap").joinpath("config", "action_to_activity.json")
-    action_mapping_json = load_json_file(activity_mapping_file)
-    activity_mapper = ActivityMapper(action_mapping_json, progress_bar=False)
-    activities = activity_mapper.map(actions)
+        activity_mapping_file = files("ghmap").joinpath(
+            "config", "action_to_activity.json"
+        )
+        action_mapping_json = load_json_file(activity_mapping_file)
+        activity_mapper = ActivityMapper(action_mapping_json, progress_bar=False)
+        activities = activity_mapper.map(actions)
 
     return activities
 
