@@ -6,7 +6,7 @@ from requests import Response
 class RabbitErrors(Exception):
     """Base error class for API related issues"""
 
-    def __init__(self, message: str = "An error occured with the GitHub API"):
+    def __init__(self, message: str = "An error occurred with the GitHub API"):
         super().__init__(message)
 
     def __str__(self):

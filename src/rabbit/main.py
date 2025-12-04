@@ -49,7 +49,7 @@ def _process_single_contributor(
     except RabbitErrors as err:
         raise err from err
     except Exception as err:
-        raise RabbitErrors(f"An critical error occurred: {str(err)}") from err
+        raise RabbitErrors(f"A critical error occurred: {str(err)}") from err
 
 
 def run_rabbit(
