@@ -30,10 +30,7 @@ def retry(max_attempts: int = 3, delay: int = 10, backoff: float = 2.0):
                 except RetryableError as e:
                     # TODO: replace print with proper logging
                     if attempt < max_attempts - 1:
-                        print(
-                            f"Network error occurred: {e}. "
-                            f"Retrying in {current_delay} seconds..."
-                        )
+                        print(e, f"Retrying in {current_delay} seconds...")
                         time.sleep(current_delay)
                         current_delay *= backoff
                     else:

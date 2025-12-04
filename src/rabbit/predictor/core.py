@@ -21,9 +21,7 @@ def _compute_activity_sequences(events: list) -> list:
     """
     with contextlib.redirect_stdout(io.StringIO()):
         # Disable ghmap warnings in the stdout TODO: better way to handle ghmap logging?
-        action_mapping_file = files("ghmap").joinpath(
-            "config", "event_to_action.json"
-        )
+        action_mapping_file = files("ghmap").joinpath("config", "event_to_action.json")
         action_mapping_json = load_json_file(action_mapping_file)
         action_mapper = ActionMapper(action_mapping_json, progress_bar=False)
         actions = action_mapper.map(events)

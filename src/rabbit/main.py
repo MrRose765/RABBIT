@@ -2,29 +2,54 @@ import pandas as pd
 
 from .sources import GitHubAPIExtractor
 from .predictor import predict_user_type
-from .sources.errors import GitHubAPIError
+from .sources.errors import GitHubAPIError, NotFoundError
 
 from rich.progress import track
 
 
 def _save_results(all_results, output_type, save_path):
-    """
-    args: all_results (DataFrame)- all the results (contributor name, type, confidence and so on) and additional information (features used to determine the type)
-          save_path (str) - the path along with file name and extension to save the results
-          output_type (str) - to convert the results to csv or json
-
-    returns: None
-
-    description: Save the results in the given path
-    """
+    """Save the result in the specified format and path."""
 
     if output_type == "text":
         print(all_results.to_string(index=False))
-
     elif output_type == "csv":
         all_results.to_csv(save_path, index=False)
     elif output_type == "json":
         all_results.to_json(save_path, orient="records", indent=4)
+
+
+def _process_single_contributor(
+    contributor: str,
+    gh_api_client: GitHubAPIExtractor,
+    min_events: int,
+):
+    """Process a single contributor to determine their type."""
+    try:
+        events = gh_api_client.query_events(contributor)
+        if len(events) < min_events:
+            return {
+                "contributor": contributor,
+                "type": "Unknown",
+                "confidence": "-",
+            }
+        else:
+            user_type, confidence = predict_user_type(contributor, events)
+            return {
+                "contributor": contributor,
+                "type": user_type,
+                "confidence": confidence,
+            }
+    except NotFoundError as not_found_err:
+        print(not_found_err)
+        return {
+            "contributor": contributor,
+            "type": "Invalid",
+            "confidence": "-",
+        }
+    except GitHubAPIError as err:
+        raise err from err
+    except Exception as err:
+        raise GitHubAPIError(f"An critical error occurred: {str(err)}") from err
 
 
 def run_rabbit(
@@ -65,43 +90,22 @@ def run_rabbit(
     """
 
     gh_api_client = GitHubAPIExtractor(api_key=api_key, max_queries=max_queries)
-
     all_results = pd.DataFrame()
-    for contributor in track(contributors, description="Processing contributors..."):
-        result = None
-        try:
-            events = gh_api_client.query_events(contributor)
-            if len(events) < min_events:
-                result = {
-                    "contributor": contributor,
-                    "type": "Unknown",
-                    "confidence": "-",
-                }
-            else:
-                user_type, confidence = predict_user_type(contributor, events)
-                result = {
-                    "contributor": contributor,
-                    "type": user_type,
-                    "confidence": confidence,
-                }
 
-        except GitHubAPIError as github_err:
-            print(github_err)
-        except Exception as e:
-            print(f"An unexpected error occurred for contributor {contributor}: {e}")
-        finally:
-            if result is None:
-                result = {
-                    "contributor": contributor,
-                    "type": "Invalid",
-                    "confidence": "-",
-                }
+    try:
+        for contributor in track(
+            contributors, description="Processing contributors..."
+        ):
+            result = _process_single_contributor(contributor, gh_api_client, min_events)
             all_results = pd.concat(
                 [all_results, pd.DataFrame([result])], ignore_index=True
             )
 
             if incremental:
                 _save_results(all_results, output_type, output_path)
+
+    except Exception as e:
+        print(e)
 
     if not incremental:
         _save_results(all_results, output_type, output_path)
