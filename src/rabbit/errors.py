@@ -3,7 +3,7 @@
 from requests import Response
 
 
-class GitHubAPIError(Exception):
+class RabbitErrors(Exception):
     """Base error class for API related issues"""
 
     def __init__(self, message: str = "An error occured with the GitHub API"):
@@ -13,7 +13,7 @@ class GitHubAPIError(Exception):
         return f"[{self.__class__.__name__}] {self.args[0] if self.args else ''}"
 
 
-class RateLimitExceededError(GitHubAPIError):
+class RateLimitExceededError(RabbitErrors):
     """Error raised when the API rate limit is exceeded."""
 
     def __init__(self, reset_time: str):
@@ -35,7 +35,7 @@ class RateLimitExceededError(GitHubAPIError):
             time.sleep(time_diff)
 
 
-class NotFoundError(GitHubAPIError):
+class NotFoundError(RabbitErrors):
     """Error raised when a requested resource is not found."""
 
     def __init__(self, contributor: str):
@@ -43,14 +43,14 @@ class NotFoundError(GitHubAPIError):
         super().__init__(f"Contributor not found: {contributor}.")
 
 
-class RetryableError(GitHubAPIError):
+class RetryableError(RabbitErrors):
     """Error indicating that the operation can be retried."""
 
     def __init__(self, error_message: str):
         super().__init__(error_message)
 
 
-class APIRequestError(GitHubAPIError):
+class APIRequestError(RabbitErrors):
     """Error raised for general API request failures."""
 
     def __init__(self, response: Response, message: str = "API request failed"):

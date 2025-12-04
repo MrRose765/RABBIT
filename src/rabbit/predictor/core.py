@@ -41,7 +41,6 @@ def predict_user_type(username: str, events: list) -> tuple:
     Predict the user type (bot or human) based on the given events
     """
     # TODO: manage return formats as in old rabbit
-
     activities = _compute_activity_sequences(events)
     if len(activities) == 0:
         # Events where found but no activities could be computed

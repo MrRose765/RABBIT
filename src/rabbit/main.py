@@ -2,7 +2,7 @@ import pandas as pd
 
 from .sources import GitHubAPIExtractor
 from .predictor import predict_user_type
-from .sources.errors import GitHubAPIError, NotFoundError
+from .errors import RabbitErrors, NotFoundError
 
 from rich.progress import track
 
@@ -10,12 +10,12 @@ from rich.progress import track
 def _save_results(all_results, output_type, save_path):
     """Save the result in the specified format and path."""
 
-    if output_type == "text":
-        print(all_results.to_string(index=False))
-    elif output_type == "csv":
+    if output_type == "csv":
         all_results.to_csv(save_path, index=False)
     elif output_type == "json":
         all_results.to_json(save_path, orient="records", indent=4)
+    else:  # Print to console
+        print(all_results.to_string(index=False))
 
 
 def _process_single_contributor(
@@ -46,10 +46,10 @@ def _process_single_contributor(
             "type": "Invalid",
             "confidence": "-",
         }
-    except GitHubAPIError as err:
+    except RabbitErrors as err:
         raise err from err
     except Exception as err:
-        raise GitHubAPIError(f"An critical error occurred: {str(err)}") from err
+        raise RabbitErrors(f"An critical error occurred: {str(err)}") from err
 
 
 def run_rabbit(
@@ -105,6 +105,7 @@ def run_rabbit(
                 _save_results(all_results, output_type, output_path)
 
     except Exception as e:
+        # TODO: Maybe just let the exception propagate and handle it at a higher level
         print(e)
 
     if not incremental:

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import requests
 
-from .errors import (
+from ..errors import (
     APIRequestError,
     NotFoundError,
     RateLimitExceededError,

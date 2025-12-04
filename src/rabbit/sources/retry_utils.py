@@ -1,4 +1,4 @@
-from rabbit.sources.errors import RetryableError
+from ..errors import RetryableError
 
 
 def retry(max_attempts: int = 3, delay: int = 10, backoff: float = 2.0):

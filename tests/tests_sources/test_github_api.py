@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from rabbit.sources import GitHubAPIExtractor
-from rabbit.sources.errors import RetryableError
+from rabbit.errors import RetryableError
 
 
 class TestGitHubAPIExtractor:
@@ -102,7 +102,7 @@ class TestGitHubAPIExtractor:
     @patch("rabbit.sources.github_api.requests.get")
     def test_handle_404_not_found(self, mock_get, extractor):
         """Test if query_events() raises NotFoundError on 404."""
-        from rabbit.sources.errors import NotFoundError
+        from rabbit.errors import NotFoundError
 
         test_user = "nonexistentuser"
 
@@ -189,7 +189,7 @@ class TestGitHubAPIExtractor:
     @patch("rabbit.sources.github_api.requests.get")
     def test_raises_api_request_error_on_unknown_status(self, mock_get, extractor):
         """Test if APIRequestError is raised on unknown status codes."""
-        from rabbit.sources.errors import APIRequestError
+        from rabbit.errors import APIRequestError
 
         mock_response = Mock()
         mock_response.status_code = 418  # I'm a teapot
