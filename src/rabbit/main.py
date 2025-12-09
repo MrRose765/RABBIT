@@ -1,4 +1,5 @@
 from enum import Enum
+import logging
 
 import pandas as pd
 
@@ -8,6 +9,8 @@ from .predictor import predict_user_type
 from .errors import RabbitErrors, NotFoundError
 
 from rich.progress import track
+
+logger = logging.getLogger(__name__)
 
 
 class OutputFormat(str, Enum):
@@ -21,9 +24,11 @@ def _save_results(all_results, output_type: OutputFormat, save_path: str):
 
     if output_type == OutputFormat.CSV:
         all_results.to_csv(save_path, index=False)
+        logger.debug(f"Results saved in csv format at {save_path}")
     elif output_type == OutputFormat.JSON:
         all_results.to_json(save_path, orient="records", indent=4)
-    else:  # Print to console
+        logger.debug(f"Results saved in json format at {save_path}")
+    else:
         print(all_results.to_string(index=False))
 
 
@@ -36,7 +41,9 @@ def _process_single_contributor(
     """Process a single contributor to determine their type."""
     try:
         events = gh_api_client.query_events(contributor)
+        logger.debug(f"Found {len(events)} events for contributor {contributor}")
         if len(events) < min_events:
+            logger.debug(f"Not enough events for contributor {contributor}")
             return {
                 "contributor": contributor,
                 "type": "Unknown",
@@ -50,7 +57,7 @@ def _process_single_contributor(
                 "confidence": confidence,
             }
     except NotFoundError as not_found_err:
-        print(not_found_err)
+        logger.error(not_found_err)
         return {
             "contributor": contributor,
             "type": "Invalid",
@@ -82,13 +89,17 @@ def run_rabbit(
         min_events (int, optional): Minimum number of events required to analyze a contributor. Defaults to 5.
         min_confidence (float, optional): minimum confidence on type of contributor to stop further querying. Defaults to 1.0.
         max_queries (int, optional): Maximum number of API queries allowed per contributor. Defaults to 3.
-        output_type (str, optional): Format for saving results ('text', 'csv', or 'json'). Defaults to 'text'.
+        output_type (OutputFormat, optional): Format for saving results ('term', 'csv', or 'json').
+            Defaults to 'term'.
         output_path (str, optional): Path to save the output file. Defaults to an empty string.
         _verbose (bool, optional): If True, displays the features that were used to determine the type of contributor. Defaults to False.
         incremental (bool, optional): Update the output file/print on terminal once the type is determined for new contributors. If False, results will be accessible only after the type is determined for all the contributors Defaults to False.
 
     Returns:
         None
+
+    Raises:
+        RabbitErrors: If any critical error occurs during the process. (e.g., Could not load model, API request failures)
 
     Description:
         Processes each contributor by:
@@ -102,9 +113,8 @@ def run_rabbit(
     gh_api_client = GitHubAPIExtractor(api_key=api_key, max_queries=max_queries)
     all_results = pd.DataFrame()
 
-    predictor = ONNXPredictor()
-
     try:
+        predictor = ONNXPredictor()
         for contributor in track(
             contributors, description="Processing contributors..."
         ):
@@ -118,9 +128,13 @@ def run_rabbit(
             if incremental:
                 _save_results(all_results, output_type, output_path)
 
+    except RuntimeError as err:
+        rabbit_errors = RabbitErrors(str(err))
+        logger.critical(rabbit_errors)
+        raise rabbit_errors from err
     except Exception as e:
-        # TODO: Maybe just let the exception propagate and handle it at a higher level
-        print(e)
-
-    if not incremental:
-        _save_results(all_results, output_type, output_path)
+        logger.critical(e)
+        raise e from e
+    finally:
+        if not incremental:
+            _save_results(all_results, output_type, output_path)

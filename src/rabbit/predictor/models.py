@@ -1,9 +1,12 @@
 from importlib.resources import files
+import logging
 
 import numpy as np
 import onnxruntime
 from pandas import DataFrame
 from abc import ABC, abstractmethod
+
+logger = logging.getLogger(__name__)
 
 
 class Predictor(ABC):
@@ -68,7 +71,8 @@ class ONNXPredictor(Predictor):
             self.input_name = self.model.get_inputs()[0].name
             self.output_name = self.model.get_outputs()[1].name
 
-            # TODO: logger debug - Model ONNX loaded successfully from {self.model_path}
+            logger.debug(f"Model ONNX loaded successfully from {self.model_path}")
+
         except Exception as e:
             raise RuntimeError(
                 f"Failed to load model from {self.model_path}: {e}"
