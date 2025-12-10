@@ -35,17 +35,6 @@ class TestSaveResults:
         assert len(df_res) == 2
         assert "user1" in df_res["contributor"].values
 
-    def test_save_results_json(self, sample_data, tmp_path):
-        """Test if results are saved correctly in JSON format."""
-        output_file = tmp_path / "results.json"
-
-        _save_results(sample_data, OutputFormat.JSON, str(output_file))
-
-        assert output_file.exists()
-        df_res = pd.read_json(output_file)
-        assert len(df_res) == 2
-        assert "user2" in df_res["contributor"].values
-
     def test_print_results_term(self, capsys, sample_data):
         """Test if results are printed in the console in text format."""
         _save_results(sample_data, OutputFormat.TERMINAL, "")

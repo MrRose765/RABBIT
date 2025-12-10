@@ -164,11 +164,11 @@ def cli(
         ]
         contributors.extend(file_contributors)
 
-    if output_format in (OutputFormat.CSV, OutputFormat.JSON) and output_path is None:
+    if output_format in (OutputFormat.CSV) and output_path is None:
         logger.warning(
             "No output path provided. Results will be saved in the current directory."
         )
-        output_path = "."
+        output_path = ""
 
     logger.info(
         f"Starting RABBIT Bot Identification Tool on {len(contributors)} contributors."

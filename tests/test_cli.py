@@ -43,13 +43,6 @@ class TestCLI:
         assert mock_run_rabbit.call_args.kwargs["output_type"] == "csv"
         assert mock_run_rabbit.call_args.kwargs["output_path"] == str(csv_file)
 
-    def test_json_output(self, mock_run_rabbit, tmp_path):
-        json_file = tmp_path / "test_output.json"
-        result = runner.invoke(app, ["octocat", "-f", "json", "-o", str(json_file)])
-
-        assert result.exit_code == 0
-        assert mock_run_rabbit.call_args.kwargs["output_type"] == "json"
-        assert mock_run_rabbit.call_args.kwargs["output_path"] == str(json_file)
 
     def test_cli_extend_contributors_list_with_file(self, mock_run_rabbit, tmp_path):
         """Test if the list of the contributors is extended with the content of the input file."""
@@ -111,16 +104,16 @@ class TestIntegration:
                 "--key",
                 "valid_github_api_key_which_is_long_enough_1234567890",
                 "-f",
-                "json",
+                "csv",
                 "-o",
-                f"/{tmp_path}/output.json",
+                f"/{tmp_path}/output.csv",
             ],
         )
 
         assert result.exit_code == 0
 
         # Check if the output is saved in tmp_path
-        output_file = tmp_path / "output.json"
+        output_file = tmp_path / "output.csv"
         assert output_file.exists()
         with open(output_file, "r", encoding="utf-8") as f:
             output_data = f.read()

@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 class OutputFormat(str, Enum):
     TERMINAL = "term"
     CSV = "csv"
-    JSON = "json"
 
 
 def _save_results(all_results: DataFrame, output_type: OutputFormat, save_path: str):
@@ -29,9 +28,6 @@ def _save_results(all_results: DataFrame, output_type: OutputFormat, save_path: 
     if output_type == OutputFormat.CSV:
         all_results.to_csv(save_path, index=False)
         logger.debug(f"Results saved in csv format at {save_path}")
-    elif output_type == OutputFormat.JSON:
-        all_results.to_json(save_path, orient="records", indent=4)
-        logger.debug(f"Results saved in json format at {save_path}")
     else:
         print(all_results.to_string(index=False))
 
@@ -93,7 +89,7 @@ def run_rabbit(
         min_events (int, optional): Minimum number of events required to analyze a contributor. Defaults to 5.
         min_confidence (float, optional): minimum confidence on type of contributor to stop further querying. Defaults to 1.0.
         max_queries (int, optional): Maximum number of API queries allowed per contributor. Defaults to 3.
-        output_type (OutputFormat, optional): Format for saving results ('term', 'csv', or 'json').
+        output_type (OutputFormat, optional): Format for saving results ('term' or 'csv').
             Defaults to 'term'.
         output_path (str, optional): Path to save the output file. Defaults to an empty string.
         _verbose (bool, optional): If True, displays the features that were used to determine the type of contributor. Defaults to False.
