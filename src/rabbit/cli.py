@@ -1,12 +1,10 @@
 import csv
-import io
 import os
 import sys
 from enum import Enum
 from pathlib import Path
 from typing import Annotated, Optional
 
-from rich import print
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.text import Text
@@ -18,6 +16,7 @@ import logging
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 from rich.theme import Theme
 
+from .predictor import ContributorResult, FEATURE_NAMES
 from . import run_rabbit, RetryableError
 
 load_dotenv()
@@ -70,7 +69,7 @@ def setup_logger(verbose: int):
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
-def _get_all_contributors(
+def _concat_all_contributors(
     arg_contributors: list[str], input_file: Optional[Path]
 ) -> list[str]:
     """Combine CLI arguments and file content into a unique list."""
@@ -93,9 +92,10 @@ class RabbitUI:
 
     COLUMN_WIDTHS = {"login": 30, "type": 10, "confidence": 10}
 
-    def __init__(self, total: int, fmt: OutputFormat):
+    def __init__(self, total: int, fmt: OutputFormat, display_features: bool = False):
         self.fmt = fmt
         self.total = total
+        self.display_features = display_features
         self._is_interactive = sys.stdout.isatty()
 
         self._progress = Progress(
@@ -105,6 +105,7 @@ class RabbitUI:
             TextColumn("{task.completed}/{task.total}"),
             console=console_err,
             transient=True,
+            redirect_stdout=False,  # Avoid capturing print statements
         )
         self._task_id = self._progress.add_task("Analyzing...", total=self.total)
 
@@ -120,7 +121,7 @@ class RabbitUI:
         """Advance the progress bar by one step."""
         self._progress.advance(self._task_id)
 
-    def print_row(self, result: dict):
+    def print_row(self, result: ContributorResult):
         """Print a single result row (CSV or terminal format)."""
         content = (
             self._format_csv_row(result)
@@ -131,26 +132,52 @@ class RabbitUI:
 
     def _print_header(self):
         """Print the header row."""
-        header = (
-            "contributor,type,confidence"
-            if self.fmt == OutputFormat.CSV
-            else self._build_terminal_header()
-        )
+        if self.fmt == OutputFormat.CSV:
+            header = "contributor,type,confidence"
+            if self.display_features:
+                header += "," + ",".join(FEATURE_NAMES)
+        else:
+            header = self._build_terminal_header()
         self._output(header)
 
-    def _format_csv_row(self, result: dict) -> str:
-        """Format a result as a CSV row."""
-        output = io.StringIO()
-        csv.writer(output).writerow(
-            [result["contributor"], result["type"], result["confidence"]]
+    def _build_terminal_header(self) -> Text:
+        """Build the terminal header row."""
+        text = Text()
+        text.append(f"{'CONTRIBUTOR':<{self.COLUMN_WIDTHS['login']}}", style="header")
+        text.append("  ")
+        text.append(f"{'TYPE':<{self.COLUMN_WIDTHS['type']}}", style="header")
+        text.append("  ")
+        text.append(
+            f"{'CONFIDENCE':>{self.COLUMN_WIDTHS['confidence']}}", style="header"
         )
+
+        if self.display_features:
+            for feature_name in FEATURE_NAMES:
+                text.append(" ")
+                text.append(f"{feature_name.upper()}", style="header")
+
+        return text
+
+    def _format_csv_row(self, result: ContributorResult) -> str:
+        """Format a result as a CSV row."""
+        import io
+
+        output = io.StringIO()
+
+        row = [result.contributor, result.user_type, result.confidence]
+        if self.display_features:
+            # Append feature values in the order of FEATURE_NAMES
+            feature_values = [result.features.get(name, "") for name in FEATURE_NAMES]
+            row.extend(feature_values)
+
+        csv.writer(output).writerow(row)
         return output.getvalue().strip()
 
-    def _format_terminal_row(self, result: dict) -> Text:
+    def _format_terminal_row(self, result: ContributorResult) -> Text:
         """Format a result as a rich terminal row."""
-        login = result["contributor"]
-        rtype = result["type"]
-        confidence = result["confidence"]
+        login = result.contributor
+        rtype = result.user_type
+        confidence = result.confidence
 
         # Truncate login if too long
         w_login = self.COLUMN_WIDTHS["login"]
@@ -163,18 +190,12 @@ class RabbitUI:
         text.append("  ")
         text.append(f"{confidence:>{self.COLUMN_WIDTHS['confidence']}}")
 
-        return text
+        if self.display_features:
+            for feature_name in FEATURE_NAMES:
+                feature_value = result.features.get(feature_name, "-")
+                text.append(" ")
+                text.append(f"{feature_value}")
 
-    def _build_terminal_header(self) -> Text:
-        """Build the terminal header row."""
-        text = Text()
-        text.append(f"{'CONTRIBUTOR':<{self.COLUMN_WIDTHS['login']}}", style="header")
-        text.append("  ")
-        text.append(f"{'TYPE':<{self.COLUMN_WIDTHS['type']}}", style="header")
-        text.append("  ")
-        text.append(
-            f"{'CONFIDENCE':>{self.COLUMN_WIDTHS['confidence']}}", style="header"
-        )
         return text
 
     def _output(self, content):
@@ -182,8 +203,7 @@ class RabbitUI:
         if self._is_interactive:
             self._progress.console.print(content)
         else:
-            print(content)
-            sys.stdout.flush()
+            print(content, flush=True)
 
 
 @app.command()
@@ -248,6 +268,14 @@ def cli(
         ),
     ] = 3,
     # ---- OUTPUTS ----
+    display_features: Annotated[
+        bool,
+        typer.Option(
+            "--features",
+            help="Display computed features for each contributor.",
+            rich_help_panel="Output",
+        ),
+    ] = False,
     output_format: Annotated[
         OutputFormat,
         typer.Option(
@@ -264,7 +292,7 @@ def cli(
             "--verbose",
             "-v",
             count=True,
-            help="Increase verbosity level (can be used multiple times. e.g -vv).",
+            help="Increase verbosity level (can be used multiple times. -v or -vv).",
             rich_help_panel="Output",
         ),
     ] = 0,
@@ -274,7 +302,7 @@ def cli(
     setup_logger(verbose)
     logger = logging.getLogger("rabbit.cli")
 
-    contributors = _get_all_contributors(contributors, input_file)
+    contributors = _concat_all_contributors(contributors, input_file)
     if len(contributors) == 0:
         logger.error(
             "No contributors provided. Provide at least one contributor or an input file. (--help for more info)"
@@ -284,7 +312,7 @@ def cli(
         logger.warning("No API key provided. Rate limits will be low (60/hr).")
 
     try:
-        with RabbitUI(len(contributors), output_format) as ui:
+        with RabbitUI(len(contributors), output_format, display_features) as ui:
             for result in run_rabbit(
                 contributors=contributors,
                 api_key=key,

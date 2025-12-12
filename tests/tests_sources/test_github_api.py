@@ -95,7 +95,6 @@ class TestGitHubAPIExtractor:
 
 
 class TestGitHubAPIExtractorAPIResponses(TestGitHubAPIExtractor):
-
     @pytest.fixture
     def mock_success(self):
         mock_success = Mock()
@@ -123,7 +122,7 @@ class TestGitHubAPIExtractorAPIResponses(TestGitHubAPIExtractor):
     @patch("rabbit.sources.github_api.requests.get")
     @patch("time.sleep")
     def test_handle_429_rate_limit_exceeded(
-            self, mock_sleep, mock_get, extractor, mock_success
+        self, mock_sleep, mock_get, extractor, mock_success
     ):
         """Test if query_events() raises RateLimitExceededError on rate limit exceeded."""
 
@@ -147,7 +146,7 @@ class TestGitHubAPIExtractorAPIResponses(TestGitHubAPIExtractor):
     @patch("rabbit.sources.github_api.requests.get")
     @patch("time.sleep")
     def test_handle_403_rate_limit_with_retry_after(
-            self, mock_sleep, mock_get, extractor, mock_success
+        self, mock_sleep, mock_get, extractor, mock_success
     ):
         """Test if query_events() raises RateLimitExceededError on 403 with retry-after."""
         mock_fail = Mock()
@@ -174,7 +173,7 @@ class TestGitHubAPIExtractorAPIResponses(TestGitHubAPIExtractor):
     @patch("rabbit.sources.github_api.requests.get")
     @patch("time.sleep")
     def test_handle_retryable_errors(
-            self, mock_sleep, mock_get, extractor, status_code, reason, error_type
+        self, mock_sleep, mock_get, extractor, status_code, reason, error_type
     ):
         """Test all retryable errors (500/504/408) raise RetryableError."""
         mock_response = Mock()

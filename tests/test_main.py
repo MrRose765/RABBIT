@@ -7,6 +7,7 @@ from rabbit.main import (
     run_rabbit,
 )
 from rabbit.errors import RabbitErrors
+from rabbit.predictor import ContributorResult
 
 
 class TestProcessSingleContributor:
@@ -20,8 +21,10 @@ class TestProcessSingleContributor:
     ):
         """Test _process_single_contributor returns correct type and confidence."""
 
-        mock_gh_extractor.query_events.return_value = [[{"event": "test"}] * 10]  # Simulate 10 events
-        mock_predict.return_value = ("Human", 0.95)
+        mock_gh_extractor.query_events.return_value = [
+            [{"event": "test"}] * 10
+        ]  # Simulate 10 events
+        mock_predict.return_value = ContributorResult("testuser", "Human", 0.95)
 
         result = _process_single_contributor(
             "testuser",
@@ -31,15 +34,15 @@ class TestProcessSingleContributor:
             min_confidence=1,
         )
 
-        assert result["contributor"] == "testuser"
-        assert result["type"] == "Human"
-        assert result["confidence"] == 0.95
+        assert result.contributor == "testuser"
+        assert result.user_type == "Human"
+        assert result.confidence == 0.95
 
     @patch("rabbit.main.ONNXPredictor")
     @patch("rabbit.main.GitHubAPIExtractor")
     @patch("rabbit.main.predict_user_type")
     def test_process_contributor_with_more_than_100_event_minimum(
-            self, mock_predict, mock_gh_extractor, mock_predictor
+        self, mock_predict, mock_gh_extractor, mock_predictor
     ):
         """Users can set the min_events parameter to more than 100, which requires multiple API calls."""
         # Simulate 250 events returned in 3 pages
@@ -48,7 +51,7 @@ class TestProcessSingleContributor:
             [{"event": "test"}] * 100,
             [{"event": "test"}] * 50,
         ]
-        mock_predict.return_value = ("Bot", 0.9)
+        mock_predict.return_value = ContributorResult("testuser", "Bot", 0.90)
 
         result = _process_single_contributor(
             "testuser",
@@ -58,9 +61,9 @@ class TestProcessSingleContributor:
             min_confidence=1,
         )
 
-        assert result["contributor"] == "testuser"
-        assert result["type"] == "Bot"
-        assert result["confidence"] == 0.90
+        assert result.contributor == "testuser"
+        assert result.user_type == "Bot"
+        assert result.confidence == 0.90
 
     @patch("rabbit.main.ONNXPredictor")
     @patch("rabbit.main.GitHubAPIExtractor")
@@ -74,12 +77,16 @@ class TestProcessSingleContributor:
         ]  # Simulate less than min_events
 
         result = _process_single_contributor(
-            "testuser", mock_gh_extractor, predictor=mock_predictor, min_events=5, min_confidence=1
+            "testuser",
+            mock_gh_extractor,
+            predictor=mock_predictor,
+            min_events=5,
+            min_confidence=1,
         )
 
-        assert result["contributor"] == "testuser"
-        assert result["type"] == "Unknown"
-        assert result["confidence"] == "-"
+        assert result.contributor == "testuser"
+        assert result.user_type == "Unknown"
+        assert result.confidence == "-"
 
     @patch("rabbit.main.ONNXPredictor")
     @patch("rabbit.main.GitHubAPIExtractor")
@@ -92,18 +99,22 @@ class TestProcessSingleContributor:
         mock_gh_extractor.query_events.side_effect = NotFoundError("User not found")
 
         result = _process_single_contributor(
-            "invaliduser", mock_gh_extractor, predictor=mock_predictor, min_events=5, min_confidence=1
+            "invaliduser",
+            mock_gh_extractor,
+            predictor=mock_predictor,
+            min_events=5,
+            min_confidence=1,
         )
 
-        assert result["contributor"] == "invaliduser"
-        assert result["type"] == "Invalid"
-        assert result["confidence"] == "-"
+        assert result.contributor == "invaliduser"
+        assert result.user_type == "Invalid"
+        assert result.confidence == "-"
 
     @patch("rabbit.main.ONNXPredictor")
     @patch("rabbit.main.GitHubAPIExtractor")
     @patch("rabbit.main.predict_user_type")
     def test_process_contributor_with_early_stopping(
-            self, mock_predict, mock_gh_extractor, mock_predictor
+        self, mock_predict, mock_gh_extractor, mock_predictor
     ):
         """Test _process_single_contributor stops early when min_confidence is reached."""
 
@@ -114,7 +125,10 @@ class TestProcessSingleContributor:
         ]
 
         # First call returns low confidence, second call returns high confidence
-        mock_predict.side_effect = [("Human", 0.6), ("Human", 0.95)]
+        mock_predict.side_effect = [
+            ContributorResult("testuser", "Human", 0.6),
+            ContributorResult("testuser", "Human", 0.95),
+        ]
 
         result = _process_single_contributor(
             "testuser",
@@ -124,9 +138,9 @@ class TestProcessSingleContributor:
             min_confidence=0.5,
         )
 
-        assert result["contributor"] == "testuser"
-        assert result["type"] == "Human"
-        assert result["confidence"] == 0.6
+        assert result.contributor == "testuser"
+        assert result.user_type == "Human"
+        assert result.confidence == 0.6
 
         # Make sure that it was called only once
         assert mock_gh_extractor.query_events.call_count == 1
@@ -143,7 +157,11 @@ class TestProcessSingleContributor:
 
         with pytest.raises(RabbitErrors):
             _process_single_contributor(
-                "testuser", mock_gh_extractor, predictor=mock_predictor, min_events=5, min_confidence=1
+                "testuser",
+                mock_gh_extractor,
+                predictor=mock_predictor,
+                min_events=5,
+                min_confidence=1,
             )
 
     @patch("rabbit.main.ONNXPredictor")
@@ -157,7 +175,11 @@ class TestProcessSingleContributor:
 
         with pytest.raises(RabbitErrors):
             _process_single_contributor(
-                "testuser", mock_gh_extractor, predictor=mock_predictor, min_events=5, min_confidence=1
+                "testuser",
+                mock_gh_extractor,
+                predictor=mock_predictor,
+                min_events=5,
+                min_confidence=1,
             )
 
 

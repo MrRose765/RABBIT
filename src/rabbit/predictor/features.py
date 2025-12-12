@@ -5,6 +5,47 @@ import pandas as pd
 # TODO:  Refactor everything below
 # TODO: Should we remove the dependency on pandas/numpy?
 
+FEATURE_NAMES = [
+    "NA",
+    "NT",
+    "NOR",
+    "ORR",
+    "DCA_mean",
+    "DCA_median",
+    "DCA_std",
+    "DCA_gini",
+    "NAR_mean",
+    "NAR_median",
+    "NAR_gini",
+    "NAR_IQR",
+    "NTR_mean",
+    "NTR_median",
+    "NTR_std",
+    "NTR_gini",
+    "NCAR_mean",
+    "NCAR_std",
+    "NCAR_IQR",
+    "DCAR_mean",
+    "DCAR_median",
+    "DCAR_std",
+    "DCAR_IQR",
+    "DAAR_mean",
+    "DAAR_median",
+    "DAAR_std",
+    "DAAR_gini",
+    "DAAR_IQR",
+    "DCAT_mean",
+    "DCAT_median",
+    "DCAT_std",
+    "DCAT_gini",
+    "DCAT_IQR",
+    "NAT_mean",
+    "NAT_median",
+    "NAT_std",
+    "NAT_gini",
+    "NAT_IQR",
+]
+
 
 def __compute_gini(array):
     """
@@ -272,47 +313,6 @@ def _activity_to_df(activity_sequences: list) -> pd.DataFrame:
 
 
 def _extract_features_from_df(username: str, activity_df: pd.DataFrame) -> pd.DataFrame:
-    features = [
-        "NA",
-        "NT",
-        "NOR",
-        "ORR",
-        "DCA_mean",
-        "DCA_median",
-        "DCA_std",
-        "DCA_gini",
-        "NAR_mean",
-        "NAR_median",
-        "NAR_gini",
-        "NAR_IQR",
-        "NTR_mean",
-        "NTR_median",
-        "NTR_std",
-        "NTR_gini",
-        "NCAR_mean",
-        "NCAR_std",
-        "NCAR_IQR",
-        "DCAR_mean",
-        "DCAR_median",
-        "DCAR_std",
-        "DCAR_IQR",
-        "DAAR_mean",
-        "DAAR_median",
-        "DAAR_std",
-        "DAAR_gini",
-        "DAAR_IQR",
-        "DCAT_mean",
-        "DCAT_median",
-        "DCAT_std",
-        "DCAT_gini",
-        "DCAT_IQR",
-        "NAT_mean",
-        "NAT_median",
-        "NAT_std",
-        "NAT_gini",
-        "NAT_IQR",
-    ]
-
     df_feat = pd.json_normalize(__stats(activity_df), sep="_")
 
     df_feat = (
@@ -324,7 +324,7 @@ def _extract_features_from_df(username: str, activity_df: pd.DataFrame) -> pd.Da
                 "feat_NOR": "NOR",
                 "feat_ORR": "ORR",
             }
-        )[features]  # Reorder the columns
+        )[FEATURE_NAMES]  # Reorder the columns
         .sort_index()
         .set_index([[username]])
     )
