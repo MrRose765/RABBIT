@@ -17,6 +17,32 @@ logger = logging.getLogger(__name__)
 
 
 class GitHubAPIExtractor:
+    """
+    Extract GitHub event data for contributors via the GitHub REST API.
+
+    This class handles pagination, rate limiting, and retries for fetching
+    user events. It yields events incrementally to support early stopping
+    based on prediction confidence.
+
+    Args:
+        api_key: GitHub personal access token. If None, rate limits are
+            lower (60 requests/hour vs 5000/hour).
+        max_queries: Maximum number of API pages to fetch per contributor.
+            Each page contains up to 100 events.
+
+    Attributes:
+        api_key: The GitHub API token for authenticated requests.
+        max_queries: Maximum number of pages to query.
+        query_root: Base URL for GitHub API (https://api.github.com).
+
+    Example:
+        >>> extractor = GitHubAPIExtractor(api_key="token", max_queries=3)
+        >>> for events in extractor.query_events("alice"):
+        ...     print(f"Fetched {len(events)} events")
+        Fetched 100 events
+        Fetched 100 events
+    """
+
     def __init__(self, api_key=None, max_queries=3):
         self.api_key = api_key
         self.max_queries = max_queries
@@ -25,6 +51,7 @@ class GitHubAPIExtractor:
 
     @staticmethod
     def _check_events_left(events):
+        """Return True if there might be more events to fetch."""
         return len(events) == 100
 
     @staticmethod
@@ -64,6 +91,7 @@ class GitHubAPIExtractor:
 
     @retry(max_attempts=3, delay=10, backoff=2.5)
     def _query_event_page(self, contributor, page):
+        """Fetch a single page of GitHub events for a contributor."""
         query = f"{self.query_root}/users/{contributor}/events"
         response = requests.get(
             query,
@@ -74,6 +102,37 @@ class GitHubAPIExtractor:
         return self._handle_api_response(contributor, response)
 
     def query_events(self, contributor: str) -> Iterator[list[dict]]:
+        """
+        Fetch GitHub events for a contributor, yielding page-by-page.
+
+        This method queries the GitHub API incrementally, allowing callers to
+        stop early once sufficient data is collected. Rate limit errors are
+        handled automatically by waiting until the limit resets.
+
+        The method stops querying automatically when either:
+        - The maximum number of queries (`max_queries`) is reached.
+        - A page returns fewer than 100 events, indicating no more events are available.
+
+        Be aware that GitHub API returns a maximum of 300 events (3 pages of 100)
+
+        Args:
+            contributor: GitHub username to query.
+
+        Yields:
+            Lists of event dictionaries. Each list contains up to 100 events.
+
+        Raises:
+            NotFoundError: If the contributor does not exist.
+            RetryableError: If network errors persist after retries.
+            RateLimitExceededError: If rate limit is hit and reset time is
+                unknown (typically when no API key is provided).
+
+        Example:
+            >>> extractor = GitHubAPIExtractor(api_key="token", max_queries=3)
+            >>> for events in extractor.query_events("alice"):
+            ...     print(f"Fetched {len(events)} events")
+            Fetched 100 events
+        """
         page = 1
         while page <= self.max_queries:
             try:

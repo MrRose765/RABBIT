@@ -4,7 +4,7 @@ from collections.abc import Iterator
 
 from .predictor.models import Predictor, ONNXPredictor
 from .sources import GitHubAPIExtractor
-from .predictor import predict_user_type, ContributorResult
+from .predictor import ContributorResult, predict_user_type
 from .errors import RabbitErrors, NotFoundError
 
 
@@ -62,8 +62,33 @@ def run_rabbit(
     min_events: int = 5,
     min_confidence: float = 1.0,
     max_queries: int = 3,
-    _verbose: bool = False,
 ) -> Iterator[ContributorResult]:
+    """
+    Run rabbit on a list of contributors to determiner their type.
+
+    This is the main entry point for using RABBIT as a library.
+    It yields results incrementally, allowing to process contributors one at a time.
+
+    Args:
+        contributors: List of GitHub usernames to analyze.
+        api_key: GitHub personal access token. If None, rate limits are lower (60/hr).
+        min_events: Minimum number of events required to make a prediction.
+        min_confidence: Confidence threshold (0.0-1.0). Stop querying once reached.
+        max_queries: Maximum number of API queries per contributor (max 300 events).
+
+    Yields:
+        ContributorResult: The result for each contributor.
+
+    Raises:
+        RabbitErrors: For general API or prediction errors.
+        RetryableError: For network-related issues that did not resolve after retries.
+        RateLimitExceededError: If the API rate limit is exceeded (and reset time is not known. Typically, when no API key is given).
+
+    Example:
+        >>> for result in run_rabbit(["alice"], api_key="token"):
+        >>>     print(f"{result.contributor}: {result.user_type} ({result.confidence})")
+        alice: Human (0.95)
+    """
     gh_api_client = GitHubAPIExtractor(api_key=api_key, max_queries=max_queries)
 
     try:

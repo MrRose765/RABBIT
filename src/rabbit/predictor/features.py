@@ -40,11 +40,14 @@ FEATURE_CONFIG = {
     "DCAT": ["mean", "median", "std", "gini", "IQR"],
     "NAT": ["mean", "median", "std", "gini", "IQR"],
 }
+
 FEATURE_NAMES = [
     f"{feature}_{stat}" if stat else feature
     for feature, stats in FEATURE_CONFIG.items()
     for stat in (stats if stats else [""])
 ]
+"""List of all 38 features names used by the BIMBAS model. (e.g NA, DCA_mean, NAR_gini, etc.)"""
+
 INTEGER_FEATURES = ["NA", "NT", "NOR"]
 
 
@@ -52,9 +55,29 @@ class ActivityFeatureExtractor:
     """
     Extract behavioral features from a single contributor's activity sequence.
 
+    This class processes GitHub activity data and computes 38 statistical features
+    used by the BIMBAS machine learning model to distinguish bots from humans.
+
+    Args:
+        username: The GitHub username of the contributor.
+        activity_sequences: List of activity dictionaries from ghmap transformation.
+
     Attributes:
-        username (str): The username of the contributor.
-        activity_df (pd.DataFrame): DataFrame containing the contributor's activity data.
+        username: The contributor's GitHub username.
+        activity_df: DataFrame containing processed activity data. (Computed at init)
+
+    Raises:
+        ValueError: If activities for multiple contributors are found.
+
+    Example:
+        >>> activities = [
+        ...     {"activity": "Push", "start_date": "2024-01-01T10:00:00Z",
+        ...      "actor": {"login": "alice"}, "repository": {"id": 123, "name": "owner/repo"}}
+        ... ]
+        >>> extractor = ActivityFeatureExtractor("alice", activities)
+        >>> features = extractor.compute_features()
+        >>> print(features.columns.tolist())
+        ['NA', 'NT', 'NOR', 'ORR', 'DCA_mean', ...]
     """
 
     COL_DATE = "date"
@@ -80,10 +103,21 @@ class ActivityFeatureExtractor:
 
     def compute_features(self) -> pd.DataFrame:
         """
-        Main method to compute all features for the contributor.
+        Compute all 38 behavioral features for the contributor.
 
         Returns:
-            DataFrame with one row containing all features, indexed by username
+            DataFrame with one row containing all features. Columns are named
+            according to FEATURE_NAMES constant. Index is the username.
+
+        Example:
+            >>> activities = [
+            ...     {"activity": "Push", "start_date": "2024-01-01T10:00:00Z",
+            ...      "actor": {"login": "alice"}, "repository": {"id": 123, "name": "owner/repo"}}
+            ... ]
+            >>> extractor = ActivityFeatureExtractor("alice", activities)
+            >>> features = extractor.compute_features()
+            >>> features.loc["alice", "NA"]  # Number of activities
+            1
         """
         counting_features = self._compute_counting_features()
         aggregated_features = self._compute_aggregated_features()
@@ -97,7 +131,7 @@ class ActivityFeatureExtractor:
             if col in features_df.columns:
                 features_df = features_df.astype({col: "int"})
 
-        return features_df[FEATURE_NAMES].set_index([[self.username]])
+        return features_df[FEATURE_NAMES].set_index(pd.Index([self.username]))
 
     def _prepare_dataframe(self, activity_sequences: list[dict]) -> pd.DataFrame:
         """
@@ -146,7 +180,7 @@ class ActivityFeatureExtractor:
                 f"{unique_contributors}"
             )
 
-    def _compute_counting_features(self) -> dict[str, np.number]:
+    def _compute_counting_features(self) -> dict[str, int | float]:
         """Computes simple counts (NA, NT, NOR, ORR)."""
         n_owners = self.activity_df[self.COL_OWNER].nunique()
         n_repos = self.activity_df[self.COL_REPOSITORY].nunique()

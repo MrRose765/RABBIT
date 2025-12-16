@@ -64,8 +64,8 @@ class TestPredictor:
         """
         predictor = ONNXPredictor()
         assert predictor.model is not None
-        assert predictor.input_name is not None
-        assert predictor.output_name is not None
+        assert predictor._input_name is not None
+        assert predictor._output_name is not None
 
     def test_fail_load_model_onnx(self):
         """
