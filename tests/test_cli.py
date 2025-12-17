@@ -61,7 +61,7 @@ class TestIntegration:
 
     @pytest.fixture
     def github_events(self):
-        """Charge le JSON depuis le fichier une seule fois pour les tests."""
+        """Load the json file with GitHub events only once for all tests in this class."""
         import json
 
         data_file = Path(__file__).parent / "data" / "human_events.json"

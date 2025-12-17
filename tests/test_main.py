@@ -246,7 +246,6 @@ class TestRunRabbit:
         assert len(results) == 3
         assert mock_process.call_count == 3
 
-        # Vérifier le contenu des résultats
         for result in results:
-            assert result["type"] == "Human"
-            assert result["confidence"] == 0.95
+            assert result.user_type == "Human"
+            assert result.confidence == 0.95
